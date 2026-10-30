@@ -1,6 +1,10 @@
 package seedu.address.ui;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javafx.application.Platform;
 import javafx.beans.binding.Bindings;
@@ -34,6 +38,7 @@ public class PersonListPanel extends UiPart<Region> {
 
     private final ReadOnlyObjectWrapper<Person> selectedPerson = new ReadOnlyObjectWrapper<>();
     private final ObservableList<Person> allPersons;
+    private final Map<Person, Set<Person>> renamedClients = new HashMap<>();
     private boolean isCompact;
     private boolean isRestoringSelection;
 
@@ -98,13 +103,46 @@ public class PersonListPanel extends UiPart<Region> {
 
     /**
      * Returns the client that replaced only {@code person} in {@code change}, if {@code person} has also left the
-     * address book, as after an edit that renames it. Otherwise, returns null.
+     * address book, as after an edit that renames it. This also recognises a whole-list replacement, as undo and redo
+     * use one to restore a previous state. Otherwise, returns null.
      */
     private Person getRenamedClient(ListChangeListener.Change<? extends Person> change, Person person) {
         change.reset();
-        boolean isRenamed = !allPersons.contains(person) && change.next()
-                && change.getRemoved().equals(List.of(person)) && change.getAddedSize() == 1;
-        return isRenamed ? change.getAddedSubList().get(0) : null;
+        if (allPersons.contains(person) || !change.next()) {
+            return null;
+        }
+
+        List<? extends Person> removed = change.getRemoved();
+        List<? extends Person> added = change.getAddedSubList();
+        if (removed.equals(List.of(person)) && added.size() == 1) {
+            Person renamedClient = added.get(0);
+            rememberRename(person, renamedClient);
+            return renamedClient;
+        }
+
+        // Undo and redo replace the whole list. Treat it as a rename only when the selected client is the sole
+        // difference and the direct edit was observed earlier, so a deletion cannot make the selection jump to a
+        // different client at the same position.
+        if (removed.size() != added.size()) {
+            return null;
+        }
+        int selectedIndex = removed.indexOf(person);
+        if (selectedIndex == -1) {
+            return null;
+        }
+        for (int i = 0; i < removed.size(); i++) {
+            if (i != selectedIndex && !removed.get(i).equals(added.get(i))) {
+                return null;
+            }
+        }
+        Person replacement = added.get(selectedIndex);
+        return renamedClients.getOrDefault(person, Set.of()).contains(replacement) ? replacement : null;
+    }
+
+    /** Remembers both directions of a rename so that successive undo and redo commands can follow the client. */
+    private void rememberRename(Person before, Person after) {
+        renamedClients.computeIfAbsent(before, ignored -> new HashSet<>()).add(after);
+        renamedClients.computeIfAbsent(after, ignored -> new HashSet<>()).add(before);
     }
 
     /**

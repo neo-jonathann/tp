@@ -385,6 +385,29 @@ public class MainWindowTest {
     }
 
     @Test
+    public void undo_renameSelectedClient_staysSelectedWithRestoredName(FxRobot robot) {
+        addThreeClients(robot);
+        selectClient(robot, 2);
+        enterCommand(robot, "edit 3 n/Charlotte Lim");
+
+        enterCommand(robot, "undo");
+
+        assertSelectedClientShown("Charlotte Lee");
+    }
+
+    @Test
+    public void redo_renameSelectedClient_staysSelectedWithRenamedName(FxRobot robot) {
+        addThreeClients(robot);
+        selectClient(robot, 2);
+        enterCommand(robot, "edit 3 n/Charlotte Lim");
+        enterCommand(robot, "undo");
+
+        enterCommand(robot, "redo");
+
+        assertSelectedClientShown("Charlotte Lim");
+    }
+
+    @Test
     public void find_selectedClientNotFound_closesDetailPanel(FxRobot robot) throws TimeoutException {
         addThreeClients(robot);
         enterCommand(robot, "find Charlotte");
