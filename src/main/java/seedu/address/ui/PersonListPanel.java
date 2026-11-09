@@ -138,11 +138,12 @@ public class PersonListPanel extends UiPart<Region> {
     }
 
     /**
-     * Returns a remembered renamed version of {@code person} that is now in the address book, or null if none exists.
+     * Returns a remembered renamed version of {@code person} that is in the displayed list, or null if none exists.
+     * A client hidden by find or filter must not remain selected merely because it is still in the address book.
      */
     private Person getRenamedClient(Person person) {
         return renamedClients.getOrDefault(person, Set.of()).stream()
-                .filter(allPersons::contains)
+                .filter(personListView.getItems()::contains)
                 .findFirst()
                 .orElse(null);
     }

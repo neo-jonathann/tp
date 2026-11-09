@@ -492,6 +492,20 @@ public class MainWindowTest {
     }
 
     @Test
+    public void find_renamedClientHiddenAfterOriginalNameReused_closesDetailPanel(FxRobot robot)
+            throws TimeoutException {
+        enterCommand(robot, "add n/John Tan p/91234567 e/parent@example.com a/Online");
+        selectClient(robot, 0);
+        enterCommand(robot, "edit 1 n/John Tan (NHHS)");
+        enterCommand(robot, "add n/John Tan p/91234567 e/parent@example.com a/Online");
+
+        enterCommand(robot, "find ZZZ");
+
+        assertEquals(0, getPersonListView().getItems().size());
+        assertDetailPanelClosed();
+    }
+
+    @Test
     public void delete_selectedClientWithOthersLeft_closesDetailPanel(FxRobot robot) throws TimeoutException {
         addThreeClients(robot);
         selectClient(robot, 1);
